@@ -1602,12 +1602,17 @@ def space_map(
         analyze_x = None
         analyze_y = None
         
-        local_map = False
+        local_data = -1
         
         if len(other_settings) >= 1:
             if other_settings[0].lower() == "local":
-                # Used by full galaxy map.
-                local_map = True
+                local_data = 31
+                
+                if len(other_settings) >= 2:
+                    try:
+                        local_data = bread_cog.parse_int(other_settings[1]) + 1
+                    except ValueError:
+                        pass
                 
         if len(other_settings) >= 2:
             try:
@@ -1641,7 +1646,7 @@ def space_map(
             guild = guild,
             home_x = x_galaxy,
             home_y = y_galaxy,
-            local_map = local_map,
+            local_data = local_data,
             dict_settings = dict_settings
         )
     else:
@@ -2008,7 +2013,7 @@ def full_map_galaxy(
         guild: typing.Union[discord.Guild, int, str],
         home_x: int,
         home_y: int,
-        local_map: bool = False,
+        local_data: bool = False,
         render_grid: bool = True,
         dict_settings: dict[any, any] = None
     ) -> io.BytesIO:
@@ -2068,8 +2073,8 @@ def full_map_galaxy(
             
             bit_x, bit_y = index_to_coordinate(index)
             
-            if local_map:
-                if not(abs(bit_x - home_x) < 31 and abs(bit_y - home_y) < 31):
+            if local_data > 0:
+                if not(abs(bit_x - home_x) < local_data and abs(bit_y - home_y) < local_data):
                     continue
             
             img.putpixel((bit_x, bit_y), EXPLORED_COLOR)
