@@ -1502,7 +1502,15 @@ class Bread_cog(commands.Cog, name="Bread"):
             output += f"You've bread rolled {user_account.write_number_of_times('total_rolls')} overall.\n"
         
         if user_account.has("lifetime_gambles"):
-            output += f"You've gambled your dough {user_account.write_number_of_times('lifetime_gambles')}.\n"
+            output += f"You've gambled your dough {user_account.write_number_of_times('lifetime_gambles')}. "
+            output += f"You've wagered {sn(user_account.get('dough_gambled'))} dough so far, and have "
+            
+            winnings = user_account.get("gamble_winnings")
+            if winnings < 0:
+                output += f"lost {sn(abs(winnings))} in the process.\n"
+            else:
+                output += f"won {sn(abs(winnings))} in the process.\n"
+            
         if user_account.has("max_daily_rolls"):
             if user_account.get('daily_rolls') < 0:
                 output += f"You have {sn(-user_account.get('daily_rolls'))} stored rolls, plus a maximum of {sn(user_account.get('max_daily_rolls'))} daily rolls.\n"
@@ -1647,10 +1655,23 @@ class Bread_cog(commands.Cog, name="Bread"):
 
         if user_account.has("lottery_win"):
             output_3 += f"You've won the lottery {user_account.write_number_of_times('lottery_win')}!\n"
+        
+        found_types = []
+        
         if user_account.has("chess_pieces"):
-            output_3 += f"You have {user_account.write_count('chess_pieces', 'Chess Piece')}.\n"
+            found_types.append(user_account.write_count('chess_pieces', 'Chess Piece'))
         if user_account.has("special_bread"):
-            output_3 += f"You have {user_account.write_count('special_bread', 'Special Bread')}.\n"
+            found_types.append(user_account.write_count('special_bread', 'Special Bread'))
+        if user_account.has("rare_bread"):
+            found_types.append(user_account.write_count('rare_bread', 'Rare Bread'))
+        if user_account.has("shiny"):
+            found_types.append(user_account.write_count('shiny', 'Gem'))
+        if user_account.has("very_shiny"):
+            found_types.append(user_account.write_count('very_shiny', 'Space Gem'))
+        
+        if len(found_types) > 0:
+            print(found_types)
+            output_3 += f"You've found {utility.list_items(found_types)}.\n"
         
         if len(output) + len(output_2) + len(output_3) < 1900:
             await ctx.reply(output + output_2 + output_3)
