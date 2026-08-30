@@ -2363,7 +2363,7 @@ loaf_converter""",
                             potential_addition = roll_messages.pop()
 
                             # check to make sure we don't hit the length limit
-                            if len(compound_message) + len(potential_addition) > 1990:
+                            if len(compound_message) + len(potential_addition) > 1950:
                                 # put it back on the list if it would be too long
                                 roll_messages.append(potential_addition)
                                 continue
