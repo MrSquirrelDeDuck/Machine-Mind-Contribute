@@ -853,13 +853,10 @@ class SystemPlanet(SystemTile):
             detailed: bool = False
         ) -> list[str]:
         day_seed = json_interface.get_day_seed(guild=guild)
-        ascension = json_interface.ascension_from_seed(guild=guild, galaxy_seed=self.galaxy_seed)
 
         planet_modifiers = get_planet_modifiers(
             user_account = user_account,
             json_interface = json_interface,
-            ascension = ascension,
-            guild=guild,
             day_seed = day_seed,
             tile = self
         )
@@ -1133,21 +1130,36 @@ class GalaxyTile:
             self: typing.Self,
             json_interface: bread_cog.JSON_interface,
             guild: typing.Union[discord.Guild, int, str],
-            get_wormholes: bool = True
+            load_wormhole: bool = True,
+            load_star: bool = True,
+            load_trade_hub: bool = True,
+            load_asteroids: bool = True,
+            load_planets: bool = True,
+            assume_generated: bool = False
         ) -> None:
         """Loads the system data, only if it has not already been loaded."""
         if not self.loaded:
             self.load_system_data(
                 json_interface = json_interface,
                 guild = guild,
-                get_wormholes = get_wormholes
+                load_wormhole = load_wormhole,
+                load_star = load_star,
+                load_trade_hub = load_trade_hub,
+                load_asteroids = load_asteroids,
+                load_planets = load_planets,
+                assume_generated = assume_generated
             )
     
     def load_system_data(
             self: typing.Self,
             json_interface: bread_cog.JSON_interface,
             guild: typing.Union[discord.Guild, int, str],
-            get_wormholes: bool = True
+            load_wormhole: bool = True,
+            load_star: bool = True,
+            load_trade_hub: bool = True,
+            load_asteroids: bool = True,
+            load_planets: bool = True,
+            assume_generated: bool = False
         ) -> None:
         """Loads the specific system data for this tile, including the star type, planets, asteroids, and trade hub level."""
 
@@ -1163,7 +1175,7 @@ class GalaxyTile:
                 ascension = self.ascension,
                 xpos = self.xpos,
                 ypos = self.ypos,
-                load_wormholes = get_wormholes
+                load_wormholes = load_wormhole
             )
 
             self.raw_system_data = raw_data
@@ -1178,29 +1190,34 @@ class GalaxyTile:
         # Set the system radius.
         self.system_radius = raw_data.get("radius")
 
-        # Set self.star to the star. It's assuming there's a star here, which would be impressive if there wasn't.
-        self.star = SystemStar(
-            galaxy_seed = self.galaxy_seed,
+        if load_star:
+            # Set self.star to the star. It's assuming there's a star here, which would be impressive if there wasn't.
+            self.star = SystemStar(
+                galaxy_seed = self.galaxy_seed,
 
-            galaxy_xpos = self.xpos,
-            galaxy_ypos = self.ypos,
-            system_xpos = 0,
-            system_ypos = 0,
+                galaxy_xpos = self.xpos,
+                galaxy_ypos = self.ypos,
+                system_xpos = 0,
+                system_ypos = 0,
 
-            star_type = raw_data.get("star_type")
-        )
+                star_type = raw_data.get("star_type")
+            )
 
-        # Set the trade hub to get_trade_hub, which will return None if there is no trade hub here.
-        self.trade_hub = get_trade_hub(
-            json_interface = json_interface,
-            guild = guild,
-            ascension = self.ascension,
-            galaxy_xpos = self.xpos,
-            galaxy_ypos = self.ypos
-        )
+        if load_trade_hub:
+            # import traceback
+            # print("\n".join(traceback.format_stack()))
+            # Set the trade hub to get_trade_hub, which will return None if there is no trade hub here.
+            self.trade_hub = get_trade_hub(
+                json_interface = json_interface,
+                guild = guild,
+                ascension = self.ascension,
+                galaxy_xpos = self.xpos,
+                galaxy_ypos = self.ypos,
+                assume_generated = assume_generated
+            )
 
-        if self.trade_hub is not None:
-            self.trade_hub.galaxy_tile = self
+            if self.trade_hub is not None:
+                self.trade_hub.galaxy_tile = self
         
         if raw_data.get("wormhole", {}).get("exists", False):
             wormhole_data = raw_data.get("wormhole", {})
@@ -1216,38 +1233,13 @@ class GalaxyTile:
                 wormhole_link_location = tuple(wormhole_data.get("link_galaxy", None))
             )
         
-        # If there's an asteroid belt, then add an object for the asteroids it contains.
-        if raw_data.get("asteroid_belt", False):
-            asteroids = []
+        if load_asteroids:
+            # If there's an asteroid belt, then add an object for the asteroids it contains.
+            if raw_data.get("asteroid_belt", False):
+                asteroids = []
 
-            asteroid_added = []
-            distance = raw_data.get("asteroid_belt_distance", 2)
-
-            for angle in range(360):
-                asteroid_x = distance * math.cos(math.radians(angle))
-                asteroid_y = distance * math.sin(math.radians(angle))
-
-                # Make sure it hasn't added an asteroid at this point yet.
-                if (asteroid_x, asteroid_y) in asteroid_added:
-                    continue
-                
-                asteroids.append(SystemAsteroid(
-                    galaxy_seed = self.galaxy_seed,
-
-                    galaxy_xpos = self.xpos,
-                    galaxy_ypos = self.ypos,
-                    system_xpos = int(asteroid_x),
-                    system_ypos = int(asteroid_y)
-                ))
-
-                asteroid_added.append((asteroid_x, asteroid_y))
-            
-            self.asteroids = asteroids
-        elif len(raw_data.get("asteroid_belts", [])) > 0:
-            asteroids = []
-
-            for distance in raw_data.get("asteroid_belts", []):
                 asteroid_added = []
+                distance = raw_data.get("asteroid_belt_distance", 2)
 
                 for angle in range(360):
                     asteroid_x = distance * math.cos(math.radians(angle))
@@ -1267,30 +1259,57 @@ class GalaxyTile:
                     ))
 
                     asteroid_added.append((asteroid_x, asteroid_y))
+                
+                self.asteroids = asteroids
+            elif len(raw_data.get("asteroid_belts", [])) > 0:
+                asteroids = []
+
+                for distance in raw_data.get("asteroid_belts", []):
+                    asteroid_added = []
+
+                    for angle in range(360):
+                        asteroid_x = distance * math.cos(math.radians(angle))
+                        asteroid_y = distance * math.sin(math.radians(angle))
+
+                        # Make sure it hasn't added an asteroid at this point yet.
+                        if (asteroid_x, asteroid_y) in asteroid_added:
+                            continue
+                        
+                        asteroids.append(SystemAsteroid(
+                            galaxy_seed = self.galaxy_seed,
+
+                            galaxy_xpos = self.xpos,
+                            galaxy_ypos = self.ypos,
+                            system_xpos = int(asteroid_x),
+                            system_ypos = int(asteroid_y)
+                        ))
+
+                        asteroid_added.append((asteroid_x, asteroid_y))
+                
+                self.asteroids = asteroids
+            else:
+                self.asteroids = list()
+        
+        if load_planets:
+            # Setup the planets.
+            planets = []
+
+            for planet_data in raw_data.get("planets", []):
+                planets.append(SystemPlanet(
+                    galaxy_seed = self.galaxy_seed,
+
+                    galaxy_xpos = self.xpos,
+                    galaxy_ypos = self.ypos,
+                    system_xpos = planet_data.get("xpos", 1),
+                    system_ypos = planet_data.get("ypos", 1),
+
+                    planet_type = values.get_emote(planet_data.get("type")),
+                    planet_distance = planet_data.get("distance"),
+                    planet_angle = planet_data.get("angle"),
+                    planet_deviation = planet_data.get("deviation")
+                ))
             
-            self.asteroids = asteroids
-        else:
-            self.asteroids = list()
-        
-        # Setup the planets.
-        planets = []
-
-        for planet_data in raw_data.get("planets", []):
-            planets.append(SystemPlanet(
-                galaxy_seed = self.galaxy_seed,
-
-                galaxy_xpos = self.xpos,
-                galaxy_ypos = self.ypos,
-                system_xpos = planet_data.get("xpos", 1),
-                system_ypos = planet_data.get("ypos", 1),
-
-                planet_type = values.get_emote(planet_data.get("type")),
-                planet_distance = planet_data.get("distance"),
-                planet_angle = planet_data.get("angle"),
-                planet_deviation = planet_data.get("deviation")
-            ))
-        
-        self.planets = planets
+            self.planets = planets
         
         self.loaded = True
     
@@ -1342,7 +1361,7 @@ class GalaxyTile:
                     return "black_hole_top_left"
             
             # Load the system data if it has not already been loaded.
-            self.smart_load(json_interface=json_interface, guild=self.guild, get_wormholes=False)
+            self.smart_load(json_interface=json_interface, guild=self.guild, load_wormhole=False)
             
             # Get the emoji of the star.
             return self.star.get_emoji()
@@ -1380,7 +1399,7 @@ class GalaxyTile:
         # Due to the previous if statement, if it gets here then this tile has a system.
 
         # Load the system data if it has not already been loaded.
-        self.smart_load(json_interface=json_interface, guild=self.guild, get_wormholes=True)
+        self.smart_load(json_interface=json_interface, guild=self.guild, load_wormhole=True)
 
         # If the given coords are (0, 0), then it's going to be the star.
         if system_x == 0 and system_y == 0:
@@ -1891,7 +1910,7 @@ def system_map(
 
     # If this location is not a system, place the rocket in the middle and return.
     if system_data.system:    
-        system_data.load_system_data(json_interface=json_interface, guild=guild, get_wormholes=True)
+        system_data.load_system_data(json_interface=json_interface, guild=guild, load_wormhole=True)
 
         # Place down the border.
         system_radius = system_data.system_radius
@@ -2905,7 +2924,7 @@ def get_galaxy_coordinate(
         return out
 
     if load_data:
-        out.load_system_data(json_interface=json_interface, guild=guild, get_wormholes=True)
+        out.load_system_data(json_interface=json_interface, guild=guild, load_wormhole=True)
         
     if old_x is not None:
         out.xpos = old_x
@@ -2955,10 +2974,9 @@ def get_system_coordinate(
 def get_planet_modifiers(
         user_account: account.Bread_Account,
         json_interface: bread_cog.JSON_interface,
-        ascension: int,
-        guild: typing.Union[discord.Guild, int, str],
         day_seed: str,
-        tile: SystemPlanet
+        tile: SystemPlanet,
+        galaxy_tile: GalaxyTile = None
     ) -> dict[typing.Type[values.Emote], typing.Union[int, float]]:
     """Generates the item modifiers for the given tile.
 
@@ -2986,22 +3004,15 @@ def get_planet_modifiers(
 
     # If it isn't a planet, then use the defaults of 1.
     if isinstance(tile, SystemPlanet):
-        corruption_chance = tile.get_galaxy_tile(
-            user_account = user_account,
-            json_interface = json_interface
-        ).corruption_chance() * 100
+        if galaxy_tile is None:
+            galaxy_tile = tile.get_galaxy_tile(
+                user_account = user_account,
+                json_interface = json_interface
+            )
+            
+        corruption_chance = galaxy_tile.corruption_chance() * 100
         
         priority = tile.get_priority_item()
-
-        galaxy_tile = get_galaxy_coordinate(
-            json_interface = json_interface,
-            galaxy_seed = tile.galaxy_seed,
-            guild = guild,
-            ascension = ascension,
-            xpos = tile.galaxy_xpos,
-            ypos = tile.galaxy_ypos,
-            load_data = True
-        ) # type: GalaxyTile
 
         #############################################
         #               | Not nebula: | Nebula:     #
@@ -3046,6 +3057,12 @@ def get_planet_modifiers(
         tile_seed = tile.tile_seed() + day_seed
 
         phi = (1 + math.sqrt(5)) / 2
+        
+        # Apply the soft mathematical cap.
+        cap_denominator = (corruption_chance ** 1.6) / 64 + 1
+        
+        def cap(value: float) -> float:
+            return (value - 1) * ((((- (value - 1)) / cap_denominator) ** 2 + 1) ** (-1 / 3)) + 1
 
         # Get the planet seed for each category.
         # These do not change per day.
@@ -3055,37 +3072,32 @@ def get_planet_modifiers(
             if chamber_level > 0 and key == "anarchy_piece":
                 key_mod += abs(random.Random(f"{raw_seed}_darkmatterresonancechamber").gauss(mu=math.tau / 10, sigma=0.05)) * 2 * chamber_level
 
-            odds[key] = random.Random(f"{raw_seed}{key}").gauss(mu=1, sigma=deviation)
+            new_mult = random.Random(f"{raw_seed}{key}").gauss(mu=1, sigma=deviation)
 
             if key == priority:
-                odds[key] = (abs(odds[key] - 1) + 1) * phi
+                new_mult = (abs(new_mult - 1) + 1) * phi
             
-            odds[key] += mod + key_mod
+            new_mult += mod + key_mod
 
         # Now to get the actual modifiers.
         # These do change per day, but tend to be around the default seeds calculated above.
-        for key, value in odds.copy().items():
+        # for key, value in odds.copy().items():
             sigma = deviation
 
             if key == priority:
                 sigma = deviation * 1.1
 
-            odds[key] = random.Random(f"{tile_seed}{key}").gauss(mu=value, sigma=sigma)
+            new_mult = random.Random(f"{tile_seed}{key}").gauss(mu=new_mult, sigma=sigma)
 
             # Incredibly unlikely to be an issue, but this forces the priority item to be greater than 1.
             # This prevents the priority item from being less common than normal.
             if key == priority and odds[key] < 1:
-                odds[key] = abs(odds[key] - 1) + 1
+                new_mult = abs(new_mult - 1) + 1
         
-        # Apply the soft mathematical cap.
-        cap_denominator = (corruption_chance ** 1.6) / 64 + 1
-        
-        def cap(value: float) -> float:
-            return (value - 1) * ((((- (value - 1)) / cap_denominator) ** 2 + 1) ** (-1 / 3)) + 1
-        
-        for key, value in odds.copy().items():
-            odds[key] = cap(value)
-
+        # for key, value in odds.copy().items():
+            new_mult = cap(new_mult)
+            
+            odds[key] = new_mult
 
     result = {}
 
@@ -3124,7 +3136,8 @@ def get_trade_hub(
         guild: typing.Union[discord.Guild, int, str],
         ascension: int,
         galaxy_xpos: int,
-        galaxy_ypos: int
+        galaxy_ypos: int,
+        assume_generated: bool = False
     ) -> typing.Union[SystemTradeHub, None]:
     """Returns a SystemTradeHub object for the trade hub in the given galaxy coordinate.
 
@@ -3134,6 +3147,9 @@ def get_trade_hub(
         ascension (int): The ascension to use.
         galaxy_xpos (int): The x position in the galaxy to use.
         galaxy_ypos (int): The y position in the galaxy to use.
+        assume_generated (bool, optional): Whether to assume the galaxy tile has already been generated.
+            This means it doesn't need to generate the system to check for a natural hub if a hub isn't found in the database.
+            Defaults to False.
 
     Returns:
         typing.Union[SystemTradeHub, None]: The SystemTradeHub object for the trade hub, or None if there is no trade hub.
@@ -3178,6 +3194,11 @@ def get_trade_hub(
             settings = trade_hub.get("settings", dict()),
             color = trade_hub.get("color_id", HUB_RED),
         )
+    
+    # If we can assume the galaxy tile has already been generated
+    # then we can avoid regenerating it to check for natural hubs.
+    if assume_generated:
+        return None
     
     generated = generation.generate_system(
         galaxy_seed = galaxy_seed,
@@ -3438,6 +3459,134 @@ def get_project_credits_usage(
 
             
 
+        
+
+
+
+
+###################################################################################################################################
+###################################################################################################################################
+###################################################################################################################################
+
+def find_planet_modifiers(
+    items: list[values.Emote],
+    user_account: account.Bread_Account,
+    json_interface: bread_cog.JSON_interface,
+    day_seed: str,
+    center_hub: SystemTradeHub,
+    galaxy_seed: str,
+    ignore_center: bool = False,
+    max_distance: int = 512
+) -> list[SystemTile, float]:
+    output = []
+    
+    ascension = user_account.get_prestige_level()
+    guild = user_account.get("guild_id")
+    
+    map_data = json_interface.get_space_map_data(
+            ascension_id = ascension,
+            guild = guild
+        )
+    
+    main_system = center_hub.get_galaxy_tile(user_account, json_interface)
+    check_systems: list[GalaxyTile] = []
+    
+    if center_hub.get_upgrade_level(projects.Voidlure.internal) == 1:
+        check_systems.append(main_system)
+    else:
+        tile_mask = 0
+        
+        if center_hub.get_upgrade_level(projects.Voidlure.internal) == 2:
+            tile_mask = make_circle_mask(
+                x = center_hub.galaxy_xpos,
+                y = center_hub.galaxy_ypos,
+                radius = center_hub.communication_distance
+            )
+        else:
+            bubble_data = generate_trade_hub_bubbles(
+                json_interface = json_interface,
+                ascension = ascension,
+                guild = guild
+            )
+            
+            current_point = 1 << (main_system.xpos + MAP_SIZE * main_system.ypos)
+            
+            
+            for group_check in bubble_data:
+                if group_check & current_point:
+                    tile_mask = group_check
+                    break
+        
+        for system_id in map_data["system_data"]:
+            system_id = int(system_id)
+            
+            if (1 << system_id) & tile_mask:
+                system_x = system_id % 256
+                system_y = system_id // 256
+                
+                if max(abs(system_x - center_hub.galaxy_xpos), abs(system_y - center_hub.galaxy_ypos)) > max_distance:
+                    continue
+                
+                check_systems.append(
+                    get_galaxy_coordinate(
+                        json_interface = json_interface,
+                        guild = guild,
+                        galaxy_seed = galaxy_seed,
+                        ascension = ascension,
+                        xpos = system_x,
+                        ypos = system_y,
+                        load_data = False
+                    )
+                )
+    
+    planets_scanned = 0
+    
+    for system in check_systems:
+        if not has_seen_tile(
+                json_interface = json_interface,
+                guild = guild,
+                ascension = ascension,
+                xpos = system.xpos,
+                ypos = system.ypos,
+                map_data = map_data
+            ):
+            # Skip to the next system if this one hasn't been seen yet.
+            continue
+        
+        # 32896 is the id of the center system, as it is 128 * 256 + 128.
+        if ignore_center and system.position_id == 32896:
+            continue
+        
+        # The tile has been seen and therefore we shouldn't need to genereate any new data.
+        system.smart_load(
+            json_interface = json_interface,
+            guild = guild,
+            load_wormhole = False,
+            load_star = True, # We need to load the star just in case it's a black hole.
+            load_trade_hub = True,
+            load_asteroids = False,
+            load_planets = True,
+            assume_generated = True
+        )
+        
+        for planet in system.planets:
+            modifiers = get_planet_modifiers(
+                user_account = user_account,
+                json_interface = json_interface,
+                day_seed = day_seed,
+                tile = planet,
+                galaxy_tile = system
+            )
+            
+            score_values = []
+            
+            for item in items:
+                score_values.append(modifiers.get(item, 1))
+            
+            output.append((planet, sum(score_values) / len(score_values)))
+            planets_scanned += 1
+            
+    return output
         
 
 
