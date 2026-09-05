@@ -61,6 +61,38 @@ HUB_COLOR_TO_STRING = {
     HUB_PINK: "pink",
 }
 
+HUB_RGB_NORMAL = {
+    HUB_RED: (221, 46, 68),
+    HUB_ORANGE: (221, 133, 46),
+    HUB_YELLOW: (221, 221, 46),
+    HUB_GREEN: (75, 221, 46),
+    HUB_CYAN: (46, 206, 221),
+    HUB_BLUE: (47, 46, 221),
+    HUB_PURPLE: (133, 46, 221),
+    HUB_PINK: (221, 46, 221)
+}
+
+HUB_RGB_BLACK_HOLE = {
+    HUB_RED: (114, 24, 36),
+    HUB_ORANGE: (114, 67, 24),
+    HUB_YELLOW: (114, 114, 24),
+    HUB_GREEN: (39, 114, 24),
+    HUB_CYAN: (24, 107, 114),
+    HUB_BLUE: (23, 23, 104),
+    HUB_PURPLE: (65, 23, 104),
+    HUB_PINK: (114, 24, 114)
+}
+
+HUB_COLOR_DATA = {
+    hub_color: {
+        "star1": HUB_RGB_NORMAL[hub_color],
+        "star2": HUB_RGB_NORMAL[hub_color],
+        "star3": HUB_RGB_NORMAL[hub_color],
+        "black_hole": HUB_RGB_BLACK_HOLE[hub_color],
+        "supermassive_black_hole": HUB_RGB_BLACK_HOLE[hub_color]
+    } for hub_color in HUB_COLOR_TO_STRING
+}
+
 # Swap the keys and values so you can go back and forth.
 HUB_STRING_TO_COLOR = dict(map(reversed, HUB_COLOR_TO_STRING.items()))
 
@@ -2063,7 +2095,7 @@ def full_map_galaxy(
         guild = guild
     )
     
-    hub_mask = generate_trade_hub_mask(
+    hub_mask, hub_color_masks = generate_trade_hub_mask(
         json_interface = json_interface,
         ascension = ascension,
         guild = guild
@@ -2117,6 +2149,13 @@ def full_map_galaxy(
             bit_x, bit_y = index_to_coordinate(index)
             
             img.putpixel((bit_x, bit_y), NEBULA_COLOR)
+    
+    def find_hub_color(code) -> tuple[int, int, int]:
+        for index, mask in enumerate(hub_color_masks):
+            if code & mask:
+                return index
+        
+        return None
 
     for tile_key, info in map_data.get("system_data").items():
         index = int(tile_key)
@@ -2137,7 +2176,12 @@ def full_map_galaxy(
         star_type = info.get("star_type", "star1")
         
         if code & hub_mask:
-            color_data = STAR_COLORS_WITH_HUB
+            found = find_hub_color(code)
+            
+            if found is not None:
+                color_data = HUB_COLOR_DATA[found]
+            else:
+                color_data = STAR_COLORS_WITH_HUB
         else:
             color_data = STAR_COLORS_NO_HUB
         
@@ -2350,15 +2394,23 @@ def full_map_system(
                 WORMHOLE_COLOR
             )
 
+        has_hub = False
+        hub_coordinates = None
+        
         # Trade hub.
         if system_data.get("trade_hub", {}).get("exists", False) or trade_hub_data.get(f"{galaxy_x} {galaxy_y}", {}).get("level", 0) > 0:
+            hub_color = HUB_RED
             if system_data.get("trade_hub", {}).get("exists", False):
                 trade_hub_x = system_data.get("trade_hub", {}).get("xpos", False)
                 trade_hub_y = system_data.get("trade_hub", {}).get("ypos", False)
             else:
-                trade_hub_x, trade_hub_y = trade_hub_data.get(f"{galaxy_x} {galaxy_y}", {}).get("location", 0)
+                actual_hub_data = trade_hub_data.get(f"{galaxy_x} {galaxy_y}", {})
+                trade_hub_x, trade_hub_y = actual_hub_data.get("location", 0)
+                hub_color = actual_hub_data.get("color_id", HUB_RED)
                 
-            img.putpixel((trade_hub_x + radius, trade_hub_y + radius), TRADE_HUB_COLOR)
+            img.putpixel((trade_hub_x + radius, trade_hub_y + radius), HUB_RGB_NORMAL[hub_color])
+            hub_coordinates = (trade_hub_x + radius, trade_hub_y + radius)
+            has_hub = True
 
     ##################################################
 
@@ -2375,6 +2427,18 @@ def full_map_system(
         for coordinate in range(size):
             draw.line([(coordinate * size_multiplier + (size_multiplier - 1) - (text_multiplier // 2), 0), (coordinate * size_multiplier + (size_multiplier - 1) - (text_multiplier // 2), img.size[1])], grid_color, width=text_multiplier)
             draw.line([(0, coordinate * size_multiplier + (size_multiplier - 1) - (text_multiplier // 2)), (img.size[0], coordinate * size_multiplier + (size_multiplier - 1) - (text_multiplier // 2))], grid_color, width=text_multiplier)
+    
+    if has_hub:
+        x, y = hub_coordinates
+        
+        base_x = x * size_multiplier
+        base_y = y * size_multiplier
+        
+        mult = size_multiplier - text_multiplier
+        up_left = (int(base_x + mult / 6), int(base_y + mult / 6))
+        down_right = (int(base_x + 5 * mult / 6), int(base_y + 5 * mult / 6))
+        
+        draw.rectangle([up_left, down_right], fill=TRADE_HUB_COLOR)
 
     ##################################################
     TEXT_WIDTH = 5
@@ -2705,7 +2769,7 @@ def generate_trade_hub_mask(
         json_interface: bread_cog.JSON_interface,
         guild: typing.Union[discord.Guild, int, str],
         ascension: int
-    ) -> int:
+    ) -> tuple[int, list[int]]:
     """Generates an integer mask for every generated tile in the galaxy that has a Trade Hub on it.
 
     Args:
@@ -2726,13 +2790,8 @@ def generate_trade_hub_mask(
         guild = guild
     )
     
+    color_masks = [0 for _ in range(HUB_PINK + 1)]
     out = 0
-    
-    for hub in trade_hub_data:
-        hub_x, hub_y = hub.split(" ")
-        
-        point = 1 << (int(hub_x) + 256 * int(hub_y))
-        out |= point
     
     for system_id, data in map_data.get("system_data", {}).items():
         hub = data.get("trade_hub", {})
@@ -2743,7 +2802,17 @@ def generate_trade_hub_mask(
         point = 1 << int(system_id)
         out |= point
         
-    return out
+        # Comment to exclude unknown Trade Hubs.
+        color_masks[HUB_RED] |= point
+        
+    for hub, hub_data in trade_hub_data.items():
+        hub_x, hub_y = hub.split(" ")
+        
+        point = 1 << (int(hub_x) + 256 * int(hub_y))
+        out |= point
+        color_masks[hub_data.get("color_id", HUB_RED)] |= point
+        
+    return out, color_masks
         
 def get_system_raw_data(
         json_interface: bread_cog.JSON_interface,
