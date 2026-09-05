@@ -5659,9 +5659,13 @@ anarchy - 1000% of your wager.
             
         # Check to make sure the player is able to get the full map.
         if map_type == "full" or map_type == "f":
-            hub_tile = user_account.get_system_tile(json_interface=self.json_interface) # type: space.SystemTradeHub
+            galaxy_tile = user_account.get_galaxy_tile(self.json_interface, True)
+            hub_tile = galaxy_tile.trade_hub
+            system_location = user_account.get_system_location()
 
-            if hub_tile.type != "trade_hub":
+            if hub_tile is None or \
+                (hub_tile.system_xpos != system_location[0] and hub_tile.system_ypos != system_location and \
+                    hub_tile.get_upgrade_level(projects.Listening_Post.internal) == 0):
                 return await ctx.reply("You currently do not have the ability to read and analyze map data from the communication network.\nBeing on a Trade Hub with the Offspring Outlook upgrade will allow you to read and analyze the data.")
             
             if hub_tile.get_upgrade_level(projects.Offspring_Outlook) < 1:
