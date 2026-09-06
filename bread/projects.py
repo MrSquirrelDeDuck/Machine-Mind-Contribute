@@ -5206,7 +5206,7 @@ class Flatbread_Shortage(Project):
 
 class Too_Much_Stuffing(Project):
     """Concept by Lilly, written by Kapola."""
-    internal = "flatbread_shortage"
+    internal = "too_much_stuffing"
     
     @classmethod
     def name(
@@ -5520,7 +5520,7 @@ class Waffle_Machine(Project):
 
 class Stolen_Donuts(Project):
     """Written by Duck."""
-    internal = "Stolen_Donuts"
+    internal = "stolen_donuts"
     
     @classmethod
     def name(
@@ -8379,7 +8379,7 @@ class Chessatron_Repair(Project):
 
 story_projects = [
     Essential_Oils, Bingobango, Anarchy_Trading, Beta_Minus, Anarchy_Tax_Evasion, Gem_Extraction, Bakery_Encounter, Corruption_Lab, Cafeteria_Kerfuffle,
-    Health_Inspection, Stonk_Exchange, Waxillium_Space_Station, Gem_Pressure
+    Health_Inspection, Stonk_Exchange, Ski_Hill_Issue, The_Galaxy_Edge, Mysterious_Ship, Waxillium_Space_Station, Gem_Pressure
 ]
 
 take_special_bread_projects = [Too_Much_Stuffing, Flatbread_Shortage, Appease_The_French, Croissant_Cravings, Beach_Disappearance]
