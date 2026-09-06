@@ -2169,9 +2169,11 @@ def full_map_galaxy(
         # Account for the 2x2 system.
         if x_coord == 128 and y_coord == 128:
             # The 2x2 system always spawns with a hub, so always use that color.
-            img.putpixel((127, 127), STAR_COLORS_WITH_HUB["supermassive_black_hole"])
-            img.putpixel((127, 128), STAR_COLORS_WITH_HUB["supermassive_black_hole"])
-            img.putpixel((128, 127), STAR_COLORS_WITH_HUB["supermassive_black_hole"])
+            center_color = find_hub_color(1 << (128 + 128 * MAP_SIZE))
+            print("center color:", center_color)
+            img.putpixel((127, 127), HUB_RGB_BLACK_HOLE[center_color])
+            img.putpixel((127, 128), HUB_RGB_BLACK_HOLE[center_color])
+            img.putpixel((128, 127), HUB_RGB_BLACK_HOLE[center_color])
         
         star_type = info.get("star_type", "star1")
         
@@ -2810,7 +2812,13 @@ def generate_trade_hub_mask(
         
         point = 1 << (int(hub_x) + 256 * int(hub_y))
         out |= point
-        color_masks[hub_data.get("color_id", HUB_RED)] |= point
+        
+        color = hub_data.get("color_id", HUB_RED)
+        color_masks[color] |= point
+        
+        if color != 0:
+            color_masks[0] |= point
+            color_masks[0] ^= point
         
     return out, color_masks
         
