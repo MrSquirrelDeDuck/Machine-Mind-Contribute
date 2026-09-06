@@ -2175,7 +2175,6 @@ def full_map_galaxy(
             
             # The 2x2 system always spawns with a hub, so always use that color.
             center_color = find_hub_color(1 << (128 + 128 * MAP_SIZE))
-            print("center color:", center_color)
             img.putpixel((127, 127), HUB_RGB_BLACK_HOLE[center_color])
             img.putpixel((127, 128), HUB_RGB_BLACK_HOLE[center_color])
             img.putpixel((128, 127), HUB_RGB_BLACK_HOLE[center_color])
@@ -3584,6 +3583,23 @@ def find_planet_modifiers(
     ignore_center: bool = False,
     max_distance: int = 512
 ) -> list[SystemTile, float]:
+    """Searches for and finds planets based on their item multipliers.
+    If one item is provided it will score the planets just based on that item's multiplier.
+    IF more than one item is provided it will score the planets based on the average between all of the items being searched for.
+
+    Args:
+        items (list[values.Emote]): The items to search for good odds for.
+        user_account (account.Bread_Account): The user account of the user doing the search.
+        json_interface (bread_cog.JSON_interface): The JSON interface.
+        day_seed (str): The current day seed.
+        center_hub (SystemTradeHub): The hub on which the user is doing the search.
+        galaxy_seed (str): The seed of the galaxy.
+        ignore_center (bool, optional): Whether to ignore the center system in the searching. Defaults to False.
+        max_distance (int, optional): The maximum Chebyshev distance from the center hub's galaxy tile to search. Defaults to 512.
+
+    Returns:
+        list[SystemTile, float]: A list of every planet within the range and their scores based on the searched items.
+    """
     output = []
     
     ascension = user_account.get_prestige_level()
