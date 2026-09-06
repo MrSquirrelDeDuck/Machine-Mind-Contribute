@@ -6788,23 +6788,23 @@ class Board_Game_Festival_Duplicate(Project):
 
         return [(values.anarchy_white_pawn.text, amount)]
 
-class Round_Table(Project):
-    """Concept by Emily, written by ChatGPT."""
-    internal = "round_table"
-    
+class The_Round_Table(Project):
+    """Written by Duck."""
+    internal = "the_round_table"
+
     @classmethod
     def name(
             cls,
             day_seed: str,
             system_tile: space.SystemTradeHub
-        ) -> str:
+         ) -> str:
         rng = random.Random(utility.hash_args(day_seed, system_tile.tile_seed(), "name"))
-        
+
         options = [
             "The Round Table",
-            "King Arthur",
-            "The Holy Knight"
+            "Knight Quest"
         ]
+
 
         return rng.choice(options)
 
@@ -6816,67 +6816,89 @@ class Round_Table(Project):
         ) -> str:
         rng = random.Random(utility.hash_args(day_seed, system_tile.tile_seed(), "description"))
 
-        cost = cls.get_cost(day_seed, system_tile)[0][1]
+        cost = cls.get_price_description(day_seed, system_tile)
         reward = cls.get_reward_description(day_seed, system_tile)
 
         part_1 = [
-            "Hark!",
-            "Behold!",
-            "Alas!"
+            "Assemble, everyone!",
+            "Gather round, gather round.",
+            "Welcome, everyone, from the furthest reaches of the galaxy!"
         ]
+
 
         part_2 = [
-            "The noble knight King Arthur seeks aid!",
-            "King Arthur, the valiant defender of the realm, calls for assistance!",
-            "The gallant King Arthur requires your help!"
+            "I have assembled you all here today",
+            "I have gathered all of you incredible people here today",
+            "You all are here today"
         ]
+
 
         part_3 = [
-            "The quest for assembling the legendary Round Table is at hand!",
-            "A mission to gather the bravest knights for King Arthur's Round Table has commenced!",
-            "The Holy Knight's sacred endeavor to unite the realm's finest knights under one banner has begun!"
+            "to begin a new quest!",
+            "to be awarded the pleasure of a new quest!",
+            "to be given a new adventure!"
         ]
+
 
         part_4 = [
-            "This is a dire hour,",
-            "Troubling times have fallen upon us,",
-            "A dark cloud looms over the kingdom,"
+            "As you all may know,",
+            "As may be known by now,"
         ]
-        
+
+
         part_5 = [
-            "as the Round Table remains incomplete!",
-            "for King Arthur's Round Table lacks members!",
-            "with the Holy Knight's assembly yet unfinished!"
+            "out last party of knights exploring the galaxy",
+            "the last group of knights we set out to explore the galaxy",
+            "the previous knights who had the honor to explore the galaxy"
         ]
+
 
         part_6 = [
-            "Before the realm can achieve unity,",
-            "Until the noble Round Table is fully assembled,",
-            "Until the fellowship of knights is whole,"
+            "have vanished from our sensors.",
+            "have seemingly disappeared from our knowledge.",
+            "have ceased to send their locations back to us."
         ]
+
 
         part_7 = [
-            "additional knights are required to join the cause!",
-            "more valiant souls must answer the call!",
-            "brave warriors must step forward to join the noble quest!"
+            "We do not know why,",
+            "The reasons are unbeknownst to us,",
+            "The cause of this is beyond our knowledge,"
         ]
+
 
         part_8 = [
-            f"With {cost} knights needed to complete the Round Table!",
-            f"Seeking {cost} honorable knights to fill the ranks!",
-            f"A total of {cost} gallant warriors are required for the Round Table's completion!"
+            "but we are eager to",
+            "but we are looking to",
+            "but we would very much like to"
         ]
+
 
         part_9 = [
-            "Fear not, for valor shall be rewarded!",
-            "But fret not, for those who aid shall be duly compensated!",
-            "Take heart, for those who answer the call shall be duly recognized!"
+            "regain contact with these noble knights.",
+            "come into contact again with the knights.",
+            "find the missing knights."
         ]
 
+
         part_10 = [
-            f"The reward for aiding in the assembly of the Round Table is {reward}!",
-            f"Those who join the noble cause shall be granted {reward} in recognition of their bravery!",
-            f"A bounty of {reward} awaits those who pledge their swords to the cause!"
+            "If you could go out and search the galaxy",
+            "If you could depart this place and begin searching",
+            "If you would go and probe the galaxy"
+        ]
+
+
+        part_11 = [
+            f"for the missing {cost},",
+            f"for the {cost} our organization have lost,",
+            f"for the {cost} we are desperately looking for,"
+        ]
+
+
+        part_12 = [
+            f"I am sure we could scrounge up {reward} to pay you!",
+            f"we would give you {reward} as a reward for your hard work!",
+            f"we'd be able to find {reward} to pay you back!"
         ]
 
         return " ".join([
@@ -6889,7 +6911,9 @@ class Round_Table(Project):
             rng.choice(part_7),
             rng.choice(part_8),
             rng.choice(part_9),
-            rng.choice(part_10)
+            rng.choice(part_10),
+            rng.choice(part_11),
+            rng.choice(part_12),
         ])
 
     @classmethod
@@ -6899,14 +6923,12 @@ class Round_Table(Project):
             system_tile: space.SystemTradeHub
         ) -> str:
         rng = random.Random(utility.hash_args(day_seed, system_tile.tile_seed(), "completion"))
-
-        cost = cls.get_cost(day_seed, system_tile)[0][1]
         reward = cls.get_reward_description(day_seed, system_tile)
 
         options = [
-            f"Rejoice! The Round Table stands complete, thanks to the valorous souls who answered the call! With {cost} knights now sworn to the cause, the realm is one step closer to unity and peace. The Holy Knight extends heartfelt gratitude to all who contributed, and the promised {reward} shall soon find their way to the deserving hands of those who helped forge this legacy of valor and camaraderie. Onward, noble knights, for the realm awaits the dawn of a new era, united under the banner of King Arthur's Round Table!",
-            f"The Round Table, now complete with {cost} valiant knights, stands as a beacon of unity and honor in the realm. Let the heralds sing of the bravery of those who answered the call, for their names shall be forever etched in the annals of history. As a token of gratitude, {reward} shall be bestowed upon the gallant souls who helped realize this noble vision. May the fellowship forged around the Round Table endure through the ages, a testament to the strength of camaraderie and the triumph of valor!",
-            f"Victory! With {cost} noble knights now gathered around the Round Table, the realm's unity is assured and King Arthur's legacy preserved. Let the banners fly high and the trumpets sound in celebration of this momentous achievement! To those who heeded the call and joined the ranks of the Round Table, {reward} shall serve as a symbol of appreciation and honor. Together, we stand as guardians of peace and justice, bound by oath and valor, forever remembered in the songs and tales of old."
+            f"Thank you immensely! The return of the knights will cause a new golden era of the round table! Take these {reward} for your troubles!",
+            f"Thank you! These knights have brought back their own riches and stories to tell, and we have {reward} to give you as thanks!",
+            f"Incredible! Thank you for returning the knights to the round table! They have brought back new technology not yet known to us! Please, take these {reward} as a reward, you deserve it!"
         ]
 
         return rng.choice(options)
@@ -6919,9 +6941,9 @@ class Round_Table(Project):
         ) -> list[tuple[str, int]]:
         rng = random.Random(utility.hash_args(day_seed, system_tile.tile_seed(), "items"))
 
-        amount = rng.randint(2,6) * 256
-
-        return [(values.white_knight.text, amount)]
+        return [
+            (values.white_knight.text, random(2,6)*256)
+        ]
     
     @classmethod
     def get_reward(
@@ -6931,9 +6953,9 @@ class Round_Table(Project):
         ) -> list[tuple[str, int]]:
         rng = random.Random(utility.hash_args(day_seed, system_tile.tile_seed(), "items"))
 
-        amount = rng.randint(2, 6) * 2
-
-        return [(values.anarchy_white_knight.text, amount)]
+        return [
+            (values.anarchy_white_knight.text, random(2,6)*2)
+        ]
     
 class Stolen_Bishops(Project):
     """Written by Chaotixu."""
@@ -8385,7 +8407,7 @@ story_projects = [
 take_special_bread_projects = [Too_Much_Stuffing, Flatbread_Shortage, Appease_The_French, Croissant_Cravings, Beach_Disappearance]
 take_rare_bread_projects = [Ecosystem_Problem, Stolen_Donuts, Waffle_Machine]
 take_black_chess_piece_projects = [Board_Game_Festival, Electrical_Issue, Chess_Tournament, Diorama_Issue, Offering_Ritual_Duplicate, Royal_Summit_Duplicate]
-take_white_chess_piece_projects = [Board_Game_Festival_Duplicate, Royal_Summit, Stolen_Bishops, Offering_Ritual, Fortress_Building, Round_Table]
+take_white_chess_piece_projects = [Board_Game_Festival_Duplicate, Royal_Summit, Stolen_Bishops, Offering_Ritual, Fortress_Building, The_Round_Table]
 take_gem_projects = [Gem_Salesman, Generator_Breakdown, Jewelry_Store, Gem_Mining, Emergency_Fuel]
 take_misc_item_projects = [Chessatron_Repair, Omega_Order]
 
