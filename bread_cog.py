@@ -2444,7 +2444,7 @@ loaf_converter""",
                     for message in messages:
                         await ctx.reply(message)
                     
-            except:
+            except Exception as e:
                 await self.output_error(
                     ctx = ctx,
                     error = e,
